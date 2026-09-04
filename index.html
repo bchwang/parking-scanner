@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>에스텍 주차 단속 스캐너</title>
     
+    <!-- ⬇️ 스마트폰 홈 화면 바로가기 아이콘 (에스텍 로고) 설정 부분 ⬇️ -->
+    <link rel="icon" href="stec.png">
+    <link rel="apple-touch-icon" href="stec.png">
+    <meta name="apple-mobile-web-app-title" content="단속스캐너">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -19,11 +24,16 @@
             object-fit: cover; z-index: -1; 
         }
         .header { 
-            text-align: center; padding: 15px; background: rgba(0,0,0,0.7); 
+            text-align: center; padding: 10px 15px; background: rgba(0,0,0,0.8); 
             border-bottom: 2px solid #333;
         }
-        .header h2 { margin: 0; font-size: 22px; color: #ffcc00; }
-        .header p { margin: 5px 0 0 0; font-size: 14px; color: #aaa; }
+        /* 로고 이미지 스타일 */
+        .header img {
+            height: 35px; /* 로고 크기 조절 */
+            margin-bottom: 5px;
+        }
+        .header h2 { margin: 0; font-size: 20px; color: #ffcc00; }
+        .header p { margin: 2px 0 0 0; font-size: 12px; color: #aaa; }
         
         .scanner-box { 
             border: 3px dashed #ffcc00; width: 80%; height: 120px; 
@@ -45,8 +55,9 @@
 <body>
 
     <div class="header">
+        <!-- ⬇️ 화면 상단 로고 (양지파인리조트) 설정 부분 ⬇️ -->
+        <img src="pine.png" alt="양지파인리조트">
         <h2>에스텍 주차 단속 스캐너</h2>
-        <p>양지파인리조트 차량 관리 시스템</p>
     </div>
 
     <video id="camera-view" autoplay playsinline></video>
@@ -58,7 +69,6 @@
     <button class="btn-scan" onclick="scanVehicle()">📸 정밀 스캔</button>
 
     <script>
-        // 파이어베이스 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDw-XMdIUdIuPiU3jVqfUA9PMUMOpbz_C0",
             authDomain: "pine-parking.firebaseapp.com",
@@ -70,7 +80,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 중계 서버 및 네이버 정보
         const PROXY_URL = "https://script.google.com/macros/s/AKfycbzxrR1Jv04T0P60noq5VCmIfNhEP5LrwyeadOxm4AnEIcM8lwqNlipDJkZzJ-p7HAGmPA/exec";
         const NAVER_OCR_URL = "https://ws0j6fezk4.apigw.ntruss.com/custom/v1/57662/d2922372131239317837d760004d37d0b2ca5f803a6c9c4060c565d63c216609/general";
         const NAVER_SECRET_KEY = "cnFLSkpSZE9GTGhYZENadFFidFhGWUpDRVlUVWNjU3I=";
@@ -110,14 +119,9 @@
                     
                     const platePattern = rawText.match(/\d{2,3}[가-힣]\d{4}/);
                     
-                    if (platePattern) {
-                        return platePattern[0]; 
-                    } else {
-                        return rawText; 
-                    }
-                } else {
-                    return null; 
-                }
+                    if (platePattern) return platePattern[0]; 
+                    else return rawText; 
+                } else return null; 
             } catch (error) {
                 Swal.close();
                 alert("통신 에러: " + error.message);
@@ -161,9 +165,7 @@
 
                 if (manualInput.isConfirmed && manualInput.value) {
                     carNumber = manualInput.value.replace(/\s/g, '');
-                } else {
-                    return; 
-                }
+                } else return; 
             }
 
             const docRef = db.collection('vehicles').doc(carNumber);
@@ -171,40 +173,33 @@
             docRef.get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    // ⬇️ 글자 크기를 초대형으로 키운 부분입니다 ⬇️
                     if (data.type === '캐디') {
                         Swal.fire({ 
-                            icon: 'info', 
-                            title: '<h2 style="font-size: 35px; margin: 0;">캐디 차량</h2>', 
+                            icon: 'info', title: '<h2 style="font-size: 35px; margin: 0;">캐디 차량</h2>', 
                             html: `<div style="font-size: 45px; font-weight: bold; color: #008394; margin-top: 15px;">${carNumber}</div>`, 
                             background: '#e0f7fa', confirmButtonColor: '#00bcd4' 
                         });
                     } else if (data.type === '객실') {
                         Swal.fire({ 
-                            icon: 'success', 
-                            title: '<h2 style="font-size: 35px; margin: 0;">객실 차량</h2>', 
+                            icon: 'success', title: '<h2 style="font-size: 35px; margin: 0;">객실 차량</h2>', 
                             html: `<div style="font-size: 45px; font-weight: bold; color: #2e7d32; margin-top: 15px;">${carNumber}</div>`, 
                             background: '#e8f5e9', confirmButtonColor: '#4caf50' 
                         });
                     } else {
                         Swal.fire({ 
-                            icon: 'success', 
-                            title: '<h2 style="font-size: 35px; margin: 0;">등록 차량</h2>', 
+                            icon: 'success', title: '<h2 style="font-size: 35px; margin: 0;">등록 차량</h2>', 
                             html: `<div style="font-size: 45px; font-weight: bold; color: #2e7d32; margin-top: 15px;">${carNumber}</div><div style="font-size: 25px; color: #555; margin-top: 10px;">구분: ${data.type}</div>`, 
                             confirmButtonColor: '#4caf50' 
                         });
                     }
                 } else {
                     Swal.fire({ 
-                        icon: 'error', 
-                        title: '<h2 style="font-size: 35px; margin: 0; color: #d32f2f;">미등록 차량<br><span style="font-size: 22px;">(불법주차)</span></h2>', 
+                        icon: 'error', title: '<h2 style="font-size: 35px; margin: 0; color: #d32f2f;">미등록 차량<br><span style="font-size: 22px;">(불법주차)</span></h2>', 
                         html: `<div style="font-size: 45px; font-weight: bold; color: #c62828; margin-top: 15px;">${carNumber}</div>`, 
                         background: '#ffebee', confirmButtonColor: '#f44336' 
                     });
                 }
-            }).catch((error) => {
-                Swal.fire('오류 발생', '데이터베이스 연결을 확인하세요.', 'error');
-            });
+            }).catch((error) => { Swal.fire('오류 발생', '데이터베이스 연결을 확인하세요.', 'error'); });
         }
     </script>
 </body>
