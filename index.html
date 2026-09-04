@@ -17,7 +17,6 @@
             margin: 0; background-color: #121212; color: white; 
             font-family: 'Malgun Gothic', sans-serif; overflow: hidden; 
         }
-        /* 스마트폰 카메라 화면을 전체화면 배경으로 깔기 */
         #camera-view { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             object-fit: cover; z-index: -1; 
@@ -29,7 +28,6 @@
         .header h2 { margin: 0; font-size: 22px; color: #ffcc00; }
         .header p { margin: 5px 0 0 0; font-size: 14px; color: #aaa; }
         
-        /* 번호판을 맞추는 가이드라인 */
         .scanner-box { 
             border: 3px dashed #ffcc00; width: 80%; height: 120px; 
             margin: 100px auto; border-radius: 10px;
@@ -37,7 +35,6 @@
         }
         .guide-text { text-align: center; margin-top: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; }
         
-        /* 거대한 스캔 버튼 */
         .btn-scan { 
             position: fixed; bottom: 40px; left: 10%; width: 80%; padding: 20px; 
             font-size: 24px; font-weight: bold; background-color: #ffcc00; 
@@ -54,7 +51,6 @@
         <p>양지파인리조트 차량 관리 시스템</p>
     </div>
 
-    <!-- 카메라 화면 출력 영역 -->
     <video id="camera-view" autoplay playsinline></video>
 
     <div class="scanner-box"></div>
@@ -63,7 +59,7 @@
     <button class="btn-scan" onclick="scanVehicle()">📸 번호판 스캔</button>
 
     <script>
-        // 1. 황박사님의 Firebase 프로젝트 연결 열쇠
+        // 1. Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDw-XMdIUdIuPiU3jVqfUA9PMUMOpbz_C0",
             authDomain: "pine-parking.firebaseapp.com",
@@ -72,15 +68,14 @@
             messagingSenderId: "393576522385",
             appId: "1:393576522385:web:ee06f5626edafd247e9530"
         };
-        // Firebase 초기화
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 2. 네이버 CLOVA OCR 열쇠 (★여기를 수정해주세요★)
-        const NAVER_OCR_URL = "여기에_APIGW_Link_붙여넣기";
-        const NAVER_SECRET_KEY = "여기에_Secret_Key_붙여넣기";
+        // 2. 네이버 CLOVA OCR 열쇠 및 주소 적용 완료
+        const NAVER_OCR_URL = "https://ws0j6fezk4.apigw.ntruss.com/custom/v1/57662/d2922372131239317837d760004d37d0b2ca5f803a6c9c4060c565d63c216609/general";
+        const NAVER_SECRET_KEY = "cnFLSkpSZE9GTGhYZENadFFidFhGWUpDRVlUVWNjU3I=";
 
-        // 3. 스마트폰 후면 카메라 실행
+        // 3. 카메라 실행
         const video = document.getElementById('camera-view');
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
@@ -88,12 +83,11 @@
                 video.srcObject = stream;
             })
             .catch(function(error) {
-                console.log("카메라를 켤 수 없습니다:", error);
                 Swal.fire('카메라 오류', '카메라 권한을 허용해주세요.', 'error');
             });
         }
 
-        // 4. 네이버 인공지능에게 사진을 보내고 번호판 글자를 받아오는 함수
+        // 4. 네이버 인공지능 호출 함수
         async function recognizePlateFromNaver(base64Image) {
             const base64Data = base64Image.split(',')[1];
             const requestBody = {
@@ -116,30 +110,26 @@
                 const result = await response.json();
                 
                 if (result.images && result.images[0].fields && result.images[0].fields.length > 0) {
-                    // 인식된 모든 글자를 합치고 공백 제거
                     const texts = result.images[0].fields.map(field => field.inferText);
                     return texts.join('').replace(/\s/g, ''); 
                 } else {
-                    return null; // 인식 실패
+                    return null; 
                 }
             } catch (error) {
                 console.error("OCR 에러:", error);
-                return null; // 통신 에러
+                return null; 
             }
         }
 
-        // 5. [찰칵!] 메인 스캔 로직 (버튼 클릭 시 작동)
+        // 5. 스캔 버튼 메인 로직
         async function scanVehicle() {
-            // 사진 캡처를 위한 투명 도화지(Canvas) 생성
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // 캡처한 사진을 텍스트 데이터(Base64)로 변환
             const base64Image = canvas.toDataURL('image/jpeg');
 
-            // 로딩 화면 띄우기
             Swal.fire({
                 title: '번호판 판독 중...',
                 text: '네이버 AI가 번호를 분석하고 있습니다.',
@@ -147,10 +137,8 @@
                 didOpen: () => { Swal.showLoading(); }
             });
 
-            // 네이버 AI로 번호판 판독 요청
             let carNumber = await recognizePlateFromNaver(base64Image);
 
-            // 판독 실패 시, 기존처럼 수동 입력창 띄우기 (안전장치)
             if (!carNumber) {
                 const manualInput = await Swal.fire({
                     icon: 'warning',
@@ -166,11 +154,11 @@
                 if (manualInput.isConfirmed && manualInput.value) {
                     carNumber = manualInput.value.replace(/\s/g, '');
                 } else {
-                    return; // 다시 촬영 버튼을 누른 경우 종료
+                    return; 
                 }
             }
 
-            // --- 6. DB 조회 (기존 로직 유지) ---
+            // 6. Firebase DB 조회 로직
             const cleanNumber = carNumber;
             const docRef = db.collection('vehicles').doc(cleanNumber);
             
@@ -201,7 +189,6 @@
                 }
             }).catch((error) => {
                 Swal.fire('오류 발생', '데이터베이스 연결을 확인하세요.', 'error');
-                console.error("DB 에러:", error);
             });
         }
     </script>
