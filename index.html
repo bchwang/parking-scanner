@@ -67,8 +67,11 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // [핵심 수정] CORS 에러 우회를 위해 네이버 주소 앞에 corsproxy.io 브릿지를 추가했습니다.
-        const NAVER_OCR_URL = "https://corsproxy.io/?https://ws0j6fezk4.apigw.ntruss.com/custom/v1/57662/d2922372131239317837d760004d37d0b2ca5f803a6c9c4060c565d63c216609/general";
+        // 1. 구글 중계 서버 주소 적용 완료
+        const PROXY_URL = "https://script.google.com/macros/s/AKfycbzxrR1Jv04T0P60noq5VCmIfNhEP5LrwyeadOxm4AnEIcM8lwqNlipDJkZzJ-p7HAGmPA/exec";
+
+        // 2. 네이버 원본 정보
+        const NAVER_OCR_URL = "https://ws0j6fezk4.apigw.ntruss.com/custom/v1/57662/d2922372131239317837d760004d37d0b2ca5f803a6c9c4060c565d63c216609/general";
         const NAVER_SECRET_KEY = "cnFLSkpSZE9GTGhYZENadFFidFhGWUpDRVlUVWNjU3I=";
 
         const video = document.getElementById('camera-view');
@@ -91,19 +94,21 @@
                 images: [{ format: "jpeg", name: "plate", data: base64Data }]
             };
 
+            const proxyBody = {
+                url: NAVER_OCR_URL,
+                secretKey: NAVER_SECRET_KEY,
+                payload: requestBody
+            };
+
             try {
-                const response = await fetch(NAVER_OCR_URL, {
+                const response = await fetch(PROXY_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-OCR-SECRET': NAVER_SECRET_KEY
-                    },
-                    body: JSON.stringify(requestBody)
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(proxyBody)
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(response.status + " / " + errorText);
+                    throw new Error("HTTP 에러코드: " + response.status);
                 }
 
                 const result = await response.json();
@@ -116,21 +121,19 @@
                 }
             } catch (error) {
                 Swal.close();
-                alert("네이버 통신 에러: " + error.message);
+                alert("통신 에러: " + error.message);
                 return null; 
             }
         }
 
         async function scanVehicle() {
             const canvas = document.createElement('canvas');
-            
             const MAX_WIDTH = 800;
             const scale = video.videoWidth > MAX_WIDTH ? MAX_WIDTH / video.videoWidth : 1;
             canvas.width = video.videoWidth * scale;
             canvas.height = video.videoHeight * scale;
             
             canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            
             const base64Image = canvas.toDataURL('image/jpeg', 0.6);
 
             Swal.fire({
