@@ -28,7 +28,8 @@
         .scanner-box { 
             border: 3px dashed #ffcc00; width: 80%; height: 120px; 
             margin: 100px auto; border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1); box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.6); /* 주변을 어둡게 처리 */
         }
         .guide-text { text-align: center; margin-top: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; }
         
@@ -50,12 +51,14 @@
 
     <video id="camera-view" autoplay playsinline></video>
 
+    <!-- 스캔 가이드 영역 -->
     <div class="scanner-box"></div>
-    <div class="guide-text">노란 점선 사각형 안에 번호판을 맞추세요</div>
+    <div class="guide-text">밝은 사각형 안에 번호판을 맞추세요</div>
 
     <button class="btn-scan" onclick="scanVehicle()">📸 정밀 스캔</button>
 
     <script>
+        // 파이어베이스 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDw-XMdIUdIuPiU3jVqfUA9PMUMOpbz_C0",
             authDomain: "pine-parking.firebaseapp.com",
@@ -67,59 +70,29 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 1. 구글 중계 서버 주소
+        // 중계 서버 및 네이버 정보
         const PROXY_URL = "https://script.google.com/macros/s/AKfycbzxrR1Jv04T0P60noq5VCmIfNhEP5LrwyeadOxm4AnEIcM8lwqNlipDJkZzJ-p7HAGmPA/exec";
-
-        // 2. 네이버 원본 정보
         const NAVER_OCR_URL = "https://ws0j6fezk4.apigw.ntruss.com/custom/v1/57662/d2922372131239317837d760004d37d0b2ca5f803a6c9c4060c565d63c216609/general";
         const NAVER_SECRET_KEY = "cnFLSkpSZE9GTGhYZENadFFidFhGWUpDRVlUVWNjU3I=";
 
         const video = document.getElementById('camera-view');
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(function(stream) {
-                video.srcObject = stream;
-            })
-            .catch(function(error) {
-                Swal.fire('카메라 오류', '카메라 권한을 허용해주세요.', 'error');
-            });
+            .then(function(stream) { video.srcObject = stream; })
+            .catch(function(error) { Swal.fire('카메라 오류', '권한을 허용해주세요.', 'error'); });
         }
 
-        // [수정됨] 네이버에게 사진을 보낼 때, 가운데 영역만 잘라서(roi) 보내는 함수
-        async function recognizePlateFromNaver(base64Image, videoWidth, videoHeight) {
+        async function recognizePlateFromNaver(base64Image) {
             const base64Data = base64Image.split(',')[1];
-
-            // --- 핵심 수정 부분 ---
-            // 스마트폰 카메라 화면의 정중앙(가로 50%, 세로 40%)에 있는 영역만 잘라서 인식하라 설정
-            const cropWidth = Math.round(videoWidth * 0.7);   // 화면 너비의 70%
-            const cropHeight = Math.round(videoHeight * 0.3); // 화면 높이의 30%
-            const cropX = Math.round((videoWidth - cropWidth) / 2);   // 가운데 정렬 X좌표
-            const cropY = Math.round((videoHeight - cropHeight) / 2); // 가운데 정렬 Y좌표
-
             const requestBody = {
                 version: "V2",
                 requestId: "pine-" + Date.now(),
                 timestamp: Date.now(),
-                images: [{
-                    format: "jpeg",
-                    name: "plate",
-                    data: base64Data,
-                    // 네이버 OCR에게 사진의 'roi' (관심 영역) 좌표를 알려줌
-                    "roi": {
-                        "x": cropX,
-                        "y": cropY,
-                        "w": cropWidth,
-                        "h": cropHeight
-                    }
-                }]
+                images: [{ format: "jpeg", name: "plate", data: base64Data }] 
+                // 스마트폰에서 이미 잘라서 보내므로 roi 파라미터는 삭제했습니다.
             };
-            // --- 핵심 수정 끝 ---
 
-            const proxyBody = {
-                url: NAVER_OCR_URL,
-                secretKey: NAVER_SECRET_KEY,
-                payload: requestBody
-            };
+            const proxyBody = { url: NAVER_OCR_URL, secretKey: NAVER_SECRET_KEY, payload: requestBody };
 
             try {
                 const response = await fetch(PROXY_URL, {
@@ -128,15 +101,22 @@
                     body: JSON.stringify(proxyBody)
                 });
 
-                if (!response.ok) {
-                    throw new Error("HTTP 에러코드: " + response.status);
-                }
+                if (!response.ok) throw new Error("에러코드: " + response.status);
 
                 const result = await response.json();
                 
                 if (result.images && result.images[0].fields && result.images[0].fields.length > 0) {
                     const texts = result.images[0].fields.map(field => field.inferText);
-                    return texts.join('').replace(/\s/g, ''); 
+                    const rawText = texts.join('').replace(/\s/g, ''); 
+                    
+                    // [2중 안전장치] 인식된 글자들 중에서 정확히 '번호판 패턴(숫자2~3개+한글+숫자4개)'만 쏙 뽑아냅니다.
+                    const platePattern = rawText.match(/\d{2,3}[가-힣]\d{4}/);
+                    
+                    if (platePattern) {
+                        return platePattern[0]; // 예: 192하9543 만 반환
+                    } else {
+                        return rawText; // 패턴이 안 맞으면 일단 전체 반환
+                    }
                 } else {
                     return null; 
                 }
@@ -148,35 +128,40 @@
         }
 
         async function scanVehicle() {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800;
-            const scale = video.videoWidth > MAX_WIDTH ? MAX_WIDTH / video.videoWidth : 1;
-            canvas.width = video.videoWidth * scale;
-            canvas.height = video.videoHeight * scale;
-            
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            const base64Image = canvas.toDataURL('image/jpeg', 0.6);
-
             Swal.fire({
                 title: '정밀 판독 중...',
-                text: '네이버 AI가 중앙의 번호판을 분석하고 있습니다.',
+                text: '인공지능이 번호판을 분석하고 있습니다.',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
 
-            // [수정됨] 인식 함수에 실제 캡처된 사진의 가로/세로 크기를 함께 전달
-            let carNumber = await recognizePlateFromNaver(base64Image, video.videoWidth, video.videoHeight);
+            const canvas = document.createElement('canvas');
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            
+            // [1중 안전장치] 카메라 화면 전체가 아닌, 정중앙 영역만 가위로 오려냅니다.
+            const cropWidth = videoWidth * 0.7;  // 가로 70% 크기
+            const cropHeight = videoHeight * 0.25; // 세로 25% 크기 (번호판 비율에 맞춤)
+            const startX = (videoWidth - cropWidth) / 2;
+            const startY = (videoHeight - cropHeight) / 2;
+
+            canvas.width = cropWidth;
+            canvas.height = cropHeight;
+            
+            // 캔버스에 잘라낸 부분만 그리기
+            canvas.getContext('2d').drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+            
+            // 오려낸 작은 사진을 데이터로 변환 (용량이 작아져 네이버 전송 속도도 대폭 빨라집니다)
+            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+            let carNumber = await recognizePlateFromNaver(base64Image);
 
             if (!carNumber) {
                 const manualInput = await Swal.fire({
-                    icon: 'warning',
-                    title: '인식 실패',
-                    text: '가운데 사각형 안에 번호판을 정확히 맞춰주세요. 직접 입력하시겠습니까?',
-                    input: 'text',
-                    inputPlaceholder: '예: 12가3456',
-                    showCancelButton: true,
-                    confirmButtonText: '조회',
-                    cancelButtonText: '다시 스캔'
+                    icon: 'warning', title: '인식 실패',
+                    text: '직접 번호를 입력하시겠습니까?',
+                    input: 'text', inputPlaceholder: '예: 12가3456',
+                    showCancelButton: true, confirmButtonText: '조회', cancelButtonText: '취소'
                 });
 
                 if (manualInput.isConfirmed && manualInput.value) {
@@ -186,21 +171,20 @@
                 }
             }
 
-            const cleanNumber = carNumber;
-            const docRef = db.collection('vehicles').doc(cleanNumber);
+            const docRef = db.collection('vehicles').doc(carNumber);
             
             docRef.get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     if (data.type === '캐디') {
-                        Swal.fire({ icon: 'info', title: '캐디 차량', text: cleanNumber, background: '#e0f7fa', confirmButtonColor: '#00bcd4' });
+                        Swal.fire({ icon: 'info', title: '캐디 차량', text: carNumber, background: '#e0f7fa', confirmButtonColor: '#00bcd4' });
                     } else if (data.type === '객실') {
-                        Swal.fire({ icon: 'success', title: '객실 차량', text: cleanNumber, background: '#e8f5e9', confirmButtonColor: '#4caf50' });
+                        Swal.fire({ icon: 'success', title: '객실 차량', text: carNumber, background: '#e8f5e9', confirmButtonColor: '#4caf50' });
                     } else {
-                        Swal.fire({ icon: 'success', title: '등록 차량', text: `차량번호: ${cleanNumber} / 구분: ${data.type}`, confirmButtonColor: '#4caf50' });
+                        Swal.fire({ icon: 'success', title: '등록 차량', text: `번호: ${carNumber} / 구분: ${data.type}`, confirmButtonColor: '#4caf50' });
                     }
                 } else {
-                    Swal.fire({ icon: 'error', title: '미등록 차량 (불법주차)', text: cleanNumber, background: '#ffebee', confirmButtonColor: '#f44336' });
+                    Swal.fire({ icon: 'error', title: '미등록 차량 (불법주차)', text: carNumber, background: '#ffebee', confirmButtonColor: '#f44336' });
                 }
             }).catch((error) => {
                 Swal.fire('오류 발생', '데이터베이스 연결을 확인하세요.', 'error');
