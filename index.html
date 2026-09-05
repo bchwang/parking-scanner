@@ -5,15 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>에스텍 주차 단속 스캐너</title>
     
-    <!-- ⬇️ 스마트폰 홈 화면 에스텍 로고 (캐시 강제 업데이트용 꼬리표 ?v=3 추가) ⬇️ -->
+    <!-- 스마트폰 홈 화면 에스텍 로고 -->
     <link rel="icon" type="image/png" href="./stec.png?v=3">
     <link rel="apple-touch-icon" href="./stec.png?v=3">
     <link rel="shortcut icon" href="./stec.png?v=3">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="에스텍 스캐너">
-    
-    <!-- (이 아래 파이어베이스 스크립트 등은 기존과 동일하게 두시면 됩니다) -->
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -53,13 +51,43 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer;
         }
         .btn-scan:active { background-color: #e6b800; }
+
+        /* ⬇️ 추가된 관리자 로그인 화면 디자인 ⬇️ */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #121212; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .login-box {
+            background: rgba(255,255,255,0.1); padding: 40px 30px; border-radius: 15px; 
+            text-align: center; border: 2px solid #ffcc00; width: 70%; max-width: 300px;
+        }
+        .login-box input {
+            font-size: 20px; padding: 12px; text-align: center; margin: 20px 0; width: 80%;
+            border-radius: 8px; border: none; outline: none;
+        }
+        .login-box button {
+            font-size: 20px; padding: 12px; width: 90%; background-color: #ffcc00; color: black;
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
+    <!-- ⬇️ 앱 실행 시 가장 먼저 뜨는 잠금 화면 ⬇️ -->
+    <div id="login-screen">
+        <div class="login-box">
+            <img src="stec.png?v=3" style="height: 60px; margin-bottom: 15px;" onerror="this.style.display='none'">
+            <h2 style="color: #ffcc00; margin: 0 0 5px 0;">관리자 인증</h2>
+            <p style="color: #aaa; font-size: 14px; margin: 0;">에스텍 보안 시스템</p>
+            <input type="password" id="admin-pw" placeholder="암호 입력">
+            <button onclick="checkPassword()">접속하기</button>
+        </div>
+    </div>
+
     <div class="header">
-        <!-- 화면 좌측 상단 로고 (양지파인리조트) -->
-        <img src="pine.png" alt="양지파인리조트">
+        <!-- 양지파인리조트 로고 -->
+        <img src="pine.png?v=2" alt="양지파인리조트">
         <div class="header-text">
             <h2>에스텍 주차 단속 스캐너</h2>
             <p>양지파인리조트 차량 관리 시스템</p>
@@ -68,13 +96,15 @@
 
     <video id="camera-view" autoplay playsinline></video>
 
-    <!-- 스캔 가이드 영역 -->
     <div class="scanner-box"></div>
     <div class="guide-text">밝은 사각형 안에 번호판을 맞추세요</div>
 
     <button class="btn-scan" onclick="scanVehicle()">📸 정밀 스캔</button>
 
     <script>
+        // ★여기에 원하시는 관리자 비밀번호를 설정하십시오★
+        const ADMIN_PASSWORD = "1234"; 
+
         // 파이어베이스 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDw-XMdIUdIuPiU3jVqfUA9PMUMOpbz_C0",
@@ -87,125 +117,114 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 중계 서버 및 네이버 정보
         const PROXY_URL = "https://script.google.com/macros/s/AKfycbzxrR1Jv04T0P60noq5VCmIfNhEP5LrwyeadOxm4AnEIcM8lwqNlipDJkZzJ-p7HAGmPA/exec";
         const NAVER_OCR_URL = "https://ws0j6fezk4.apigw.ntruss.com/custom/v1/57662/d2922372131239317837d760004d37d0b2ca5f803a6c9c4060c565d63c216609/general";
         const NAVER_SECRET_KEY = "cnFLSkpSZE9GTGhYZENadFFidFhGWUpDRVlUVWNjU3I=";
 
-        const video = document.getElementById('camera-view');
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(function(stream) { video.srcObject = stream; })
-            .catch(function(error) { Swal.fire('카메라 오류', '권한을 허용해주세요.', 'error'); });
+        // ⬇️ 로그인 및 카메라 실행 제어 로직 ⬇️
+        window.onload = function() {
+            // 이전에 암호를 맞춘 적이 있다면 잠금화면을 바로 없애고 카메라를 켭니다.
+            if (localStorage.getItem('estec_auth') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                startCamera();
+            }
+        };
+
+        function checkPassword() {
+            const inputPw = document.getElementById('admin-pw').value;
+            if (inputPw === ADMIN_PASSWORD) {
+                // 암호가 맞으면 스마트폰에 인증 기록을 남기고 스캐너 화면으로 진입
+                localStorage.setItem('estec_auth', 'true');
+                document.getElementById('login-screen').style.display = 'none';
+                startCamera();
+            } else {
+                Swal.fire({ icon: 'error', title: '인증 실패', text: '비밀번호가 일치하지 않습니다.' });
+                document.getElementById('admin-pw').value = '';
+            }
+        }
+
+        // 인증 통과 시에만 카메라를 작동시키도록 함수로 분리했습니다.
+        function startCamera() {
+            const video = document.getElementById('camera-view');
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) { video.srcObject = stream; })
+                .catch(function(error) { Swal.fire('카메라 오류', '권한을 허용해주세요.', 'error'); });
+            }
         }
 
         async function recognizePlateFromNaver(base64Image) {
             const base64Data = base64Image.split(',')[1];
             const requestBody = {
-                version: "V2",
-                requestId: "pine-" + Date.now(),
-                timestamp: Date.now(),
+                version: "V2", requestId: "pine-" + Date.now(), timestamp: Date.now(),
                 images: [{ format: "jpeg", name: "plate", data: base64Data }] 
             };
-
             const proxyBody = { url: NAVER_OCR_URL, secretKey: NAVER_SECRET_KEY, payload: requestBody };
 
             try {
                 const response = await fetch(PROXY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(proxyBody)
                 });
-
                 if (!response.ok) throw new Error("에러코드: " + response.status);
-
                 const result = await response.json();
                 
                 if (result.images && result.images[0].fields && result.images[0].fields.length > 0) {
                     const texts = result.images[0].fields.map(field => field.inferText);
                     const rawText = texts.join('').replace(/\s/g, ''); 
-                    
                     const platePattern = rawText.match(/\d{2,3}[가-힣]\d{4}/);
-                    
-                    if (platePattern) return platePattern[0]; 
-                    else return rawText; 
+                    if (platePattern) return platePattern[0]; else return rawText; 
                 } else return null; 
             } catch (error) {
-                Swal.close();
-                alert("통신 에러: " + error.message);
-                return null; 
+                Swal.close(); alert("통신 에러: " + error.message); return null; 
             }
         }
 
         async function scanVehicle() {
             Swal.fire({
-                title: '정밀 판독 중...',
-                text: '인공지능이 번호판을 분석하고 있습니다.',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
+                title: '정밀 판독 중...', text: '인공지능이 번호판을 분석하고 있습니다.',
+                allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }
             });
 
             const canvas = document.createElement('canvas');
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
+            const videoWidth = document.getElementById('camera-view').videoWidth;
+            const videoHeight = document.getElementById('camera-view').videoHeight;
             
             const cropWidth = videoWidth * 0.7;  
             const cropHeight = videoHeight * 0.25; 
             const startX = (videoWidth - cropWidth) / 2;
             const startY = (videoHeight - cropHeight) / 2;
 
-            canvas.width = cropWidth;
-            canvas.height = cropHeight;
-            
-            canvas.getContext('2d').drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-            
+            canvas.width = cropWidth; canvas.height = cropHeight;
+            canvas.getContext('2d').drawImage(document.getElementById('camera-view'), startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             const base64Image = canvas.toDataURL('image/jpeg', 0.8);
 
             let carNumber = await recognizePlateFromNaver(base64Image);
 
             if (!carNumber) {
                 const manualInput = await Swal.fire({
-                    icon: 'warning', title: '인식 실패',
-                    text: '직접 번호를 입력하시겠습니까?',
+                    icon: 'warning', title: '인식 실패', text: '직접 번호를 입력하시겠습니까?',
                     input: 'text', inputPlaceholder: '예: 12가3456',
                     showCancelButton: true, confirmButtonText: '조회', cancelButtonText: '취소'
                 });
-
                 if (manualInput.isConfirmed && manualInput.value) {
                     carNumber = manualInput.value.replace(/\s/g, '');
                 } else return; 
             }
 
             const docRef = db.collection('vehicles').doc(carNumber);
-            
             docRef.get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     if (data.type === '캐디') {
-                        Swal.fire({ 
-                            icon: 'info', title: '<h2 style="font-size: 35px; margin: 0;">캐디 차량</h2>', 
-                            html: `<div style="font-size: 45px; font-weight: bold; color: #008394; margin-top: 15px;">${carNumber}</div>`, 
-                            background: '#e0f7fa', confirmButtonColor: '#00bcd4' 
-                        });
+                        Swal.fire({ icon: 'info', title: '<h2 style="font-size: 35px; margin: 0;">캐디 차량</h2>', html: `<div style="font-size: 45px; font-weight: bold; color: #008394; margin-top: 15px;">${carNumber}</div>`, background: '#e0f7fa', confirmButtonColor: '#00bcd4' });
                     } else if (data.type === '객실') {
-                        Swal.fire({ 
-                            icon: 'success', title: '<h2 style="font-size: 35px; margin: 0;">객실 차량</h2>', 
-                            html: `<div style="font-size: 45px; font-weight: bold; color: #2e7d32; margin-top: 15px;">${carNumber}</div>`, 
-                            background: '#e8f5e9', confirmButtonColor: '#4caf50' 
-                        });
+                        Swal.fire({ icon: 'success', title: '<h2 style="font-size: 35px; margin: 0;">객실 차량</h2>', html: `<div style="font-size: 45px; font-weight: bold; color: #2e7d32; margin-top: 15px;">${carNumber}</div>`, background: '#e8f5e9', confirmButtonColor: '#4caf50' });
                     } else {
-                        Swal.fire({ 
-                            icon: 'success', title: '<h2 style="font-size: 35px; margin: 0;">등록 차량</h2>', 
-                            html: `<div style="font-size: 45px; font-weight: bold; color: #2e7d32; margin-top: 15px;">${carNumber}</div><div style="font-size: 25px; color: #555; margin-top: 10px;">구분: ${data.type}</div>`, 
-                            confirmButtonColor: '#4caf50' 
-                        });
+                        Swal.fire({ icon: 'success', title: '<h2 style="font-size: 35px; margin: 0;">등록 차량</h2>', html: `<div style="font-size: 45px; font-weight: bold; color: #2e7d32; margin-top: 15px;">${carNumber}</div><div style="font-size: 25px; color: #555; margin-top: 10px;">구분: ${data.type}</div>`, confirmButtonColor: '#4caf50' });
                     }
                 } else {
-                    Swal.fire({ 
-                        icon: 'error', title: '<h2 style="font-size: 35px; margin: 0; color: #d32f2f;">미등록 차량<br><span style="font-size: 22px;">(불법주차)</span></h2>', 
-                        html: `<div style="font-size: 45px; font-weight: bold; color: #c62828; margin-top: 15px;">${carNumber}</div>`, 
-                        background: '#ffebee', confirmButtonColor: '#f44336' 
-                    });
+                    Swal.fire({ icon: 'error', title: '<h2 style="font-size: 35px; margin: 0; color: #d32f2f;">미등록 차량<br><span style="font-size: 22px;">(불법주차)</span></h2>', html: `<div style="font-size: 45px; font-weight: bold; color: #c62828; margin-top: 15px;">${carNumber}</div>`, background: '#ffebee', confirmButtonColor: '#f44336' });
                 }
             }).catch((error) => { Swal.fire('오류 발생', '데이터베이스 연결을 확인하세요.', 'error'); });
         }
