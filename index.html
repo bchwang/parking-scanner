@@ -6,9 +6,9 @@
     <title>에스텍 주차 단속 스캐너</title>
     
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="./stec.png?v=7">
-    <link rel="apple-touch-icon" href="./stec.png?v=7">
-    <link rel="shortcut icon" href="./stec.png?v=7">
+    <link rel="icon" type="image/png" href="./stec.png?v=8">
+    <link rel="apple-touch-icon" href="./stec.png?v=8">
+    <link rel="shortcut icon" href="./stec.png?v=8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="단속스캐너">
@@ -28,21 +28,27 @@
         }
         
         .header { 
-            display: flex; align-items: center; justify-content: center; 
+            display: flex; align-items: center; justify-content: flex-start; 
             padding: 15px 10px; background: rgba(0,0,0,0.85); 
             border-bottom: 2px solid #333; width: 100%; box-sizing: border-box; position: relative;
         }
-        .header img { height: 45px; margin-right: 12px; } 
+        .header img { height: 45px; margin-right: 12px; margin-left: 5px; } 
         .header-text { text-align: left; display: flex; flex-direction: column; justify-content: center; }
         .header-text h2 { margin: 0; font-size: 22px; color: #ffcc00; letter-spacing: -1px; white-space: nowrap; } 
         .header-text p { margin: 4px 0 0 0; font-size: 13px; color: #ccc; letter-spacing: -0.5px; white-space: nowrap; }
         
-        .btn-add {
-            position: absolute; right: 10px; background-color: #333; color: white;
-            border: 1px solid #ffcc00; padding: 8px 10px; font-size: 13px;
+        /* ⬇️ 상단 우측 버튼 2개(일지, 관리) 나란히 배치 ⬇️ */
+        .header-btns {
+            position: absolute; right: 10px; display: flex; gap: 8px;
+        }
+        .btn-top {
+            color: white; border: 1px solid #ffcc00; padding: 8px 10px; font-size: 13px;
             font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
-        .btn-add:active { background-color: #555; }
+        .btn-log { background-color: #0277bd; }
+        .btn-log:active { background-color: #01579b; }
+        .btn-manage { background-color: #333; }
+        .btn-manage:active { background-color: #555; }
         
         .scanner-box { 
             border: 5px dashed #ffcc00; width: 85%; height: 25vh; margin: 12vh auto 0 auto; 
@@ -71,13 +77,16 @@
         .swal-large-input { font-size: 28px !important; text-align: center; height: 60px; }
         .swal-reg-input { font-size: 20px !important; margin: 10px auto; width: 90%; padding: 12px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
         .swal-reg-select { font-size: 20px !important; margin: 10px auto; width: 90%; padding: 12px; border-radius: 5px; box-sizing: border-box; }
+        
+        /* 카카오톡 공유 버튼 색상(노란색에 검은글씨) 강제 적용 */
+        .kakao-btn { color: #000 !important; font-weight: bold !important; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
         <div class="login-box">
-            <img src="stec.png?v=7" style="height: 80px; margin-bottom: 20px;" onerror="this.style.display='none'">
+            <img src="stec.png?v=8" style="height: 80px; margin-bottom: 20px;" onerror="this.style.display='none'">
             <h2 style="color: #ffcc00; margin: 0 0 5px 0; font-size: 32px;">관리자 인증</h2>
             <p style="color: #aaa; font-size: 18px; margin: 0;">에스텍 보안 시스템</p>
             <input type="password" id="admin-pw" placeholder="암호 입력">
@@ -88,10 +97,13 @@
     <div class="header">
         <img src="pine.png?v=3" alt="양지파인리조트">
         <div class="header-text">
-            <h2>에스텍 주차단속 스캐너</h2>
-            <p>양지파인리조트 차량 관리 시스템</p>
+            <h2>주차단속 스캐너</h2>
+            <p>양지파인리조트 차량 관리</p>
         </div>
-        <button class="btn-add" onclick="manageVehicle()">⚙️ 차량관리</button>
+        <div class="header-btns">
+            <button class="btn-top btn-log" onclick="viewLog()">📝 일지</button>
+            <button class="btn-top btn-manage" onclick="manageVehicle()">⚙️ 관리</button>
+        </div>
     </div>
 
     <video id="camera-view" autoplay playsinline></video>
@@ -140,61 +152,118 @@
             }
         }
 
+        // ⬇️ [핵심] 단속 결과를 메모장에 몰래 자동 기록하는 함수 ⬇️
+        function saveAutoLog(plate, status) {
+            let logs = JSON.parse(localStorage.getItem('estec_scan_logs') || '[]');
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            logs.push({ time: timeStr, plate: plate, status: status });
+            localStorage.setItem('estec_scan_logs', JSON.stringify(logs));
+        }
+
+        // ⬇️ [핵심] 단속 일지를 열어보고 카톡으로 공유하는 함수 ⬇️
+        function viewLog() {
+            let logs = JSON.parse(localStorage.getItem('estec_scan_logs') || '[]');
+            if (logs.length === 0) {
+                Swal.fire('일지 없음', '아직 단속된 차량 기록이 없습니다.', 'info');
+                return;
+            }
+            
+            // 공유용 텍스트 만들기
+            let today = new Date();
+            let dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+            let logText = `[에스텍 양지파인 주차단속 일지]\n일자: ${dateStr}\n총 스캔: ${logs.length}대\n\n`;
+            
+            // 화면 표시용 예쁜 HTML 만들기
+            let htmlContent = '<div style="max-height: 40vh; overflow-y: auto; text-align: left; font-size: 16px; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px; border: 1px solid #ddd;">';
+            
+            logs.forEach((log, index) => {
+                logText += `${index + 1}. ${log.plate} - ${log.status} (${log.time})\n`;
+                let statusColor = log.status.includes('미등록') ? '#d32f2f' : '#2e7d32';
+                htmlContent += `<div style="border-bottom: 1px solid #ccc; padding: 8px 0;">
+                    <span style="color:#666; font-size:13px; margin-right:10px;">${log.time}</span>
+                    <b style="font-size:18px;">${log.plate}</b> <br>
+                    <span style="color:${statusColor}; font-weight:bold; margin-left: 50px;">${log.status}</span>
+                </div>`;
+            });
+            htmlContent += '</div>';
+
+            Swal.fire({
+                title: '<h2 style="font-size:24px; margin:0;">📝 단속 자동 일지</h2>',
+                html: htmlContent,
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: '📤 카톡 공유',
+                denyButtonText: '🗑️ 기록 초기화',
+                cancelButtonText: '닫기',
+                confirmButtonColor: '#ffcc00', // 카카오톡 노란색
+                denyButtonColor: '#777',
+                customClass: { confirmButton: 'kakao-btn' } // 검은 글씨 적용
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 스마트폰 자체 공유기능 호출 (카카오톡, 문자 등)
+                    if (navigator.share) {
+                        navigator.share({ title: '단속 일지', text: logText }).catch(console.error);
+                    } else {
+                        // PC나 구형 폰에서는 복사하기로 대체
+                        const tempElem = document.createElement('textarea');
+                        tempElem.value = logText;
+                        document.body.appendChild(tempElem);
+                        tempElem.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempElem);
+                        Swal.fire('복사 완료', '일지가 복사되었습니다. 카카오톡 대화창에 붙여넣기 하세요.', 'success');
+                    }
+                } else if (result.isDenied) {
+                    Swal.fire({
+                        title: '기록 초기화', text: '오늘의 단속 일지를 모두 지우시겠습니까?', icon: 'warning',
+                        showCancelButton: true, confirmButtonText: '삭제', cancelButtonText: '취소', confirmButtonColor: '#d32f2f'
+                    }).then((delResult) => {
+                        if (delResult.isConfirmed) {
+                            localStorage.removeItem('estec_scan_logs');
+                            Swal.fire('초기화 완료', '단속 일지가 새롭게 비워졌습니다.', 'success');
+                        }
+                    });
+                }
+            });
+        }
+
         async function manageVehicle() {
+            // (차량관리 기능은 기존과 동일)
             const action = await Swal.fire({
-                title: '<h2 style="font-size:28px; margin:0;">차량 관리 메뉴</h2>',
-                text: '수행할 작업을 선택하세요.',
-                showDenyButton: true, showCancelButton: true,
-                confirmButtonText: '➕ 등록하기', denyButtonText: '➖ 삭제하기', cancelButtonText: '닫기',
+                title: '<h2 style="font-size:28px; margin:0;">차량 관리 메뉴</h2>', text: '수행할 작업을 선택하세요.',
+                showDenyButton: true, showCancelButton: true, confirmButtonText: '➕ 등록하기', denyButtonText: '➖ 삭제하기', cancelButtonText: '닫기',
                 confirmButtonColor: '#4caf50', denyButtonColor: '#d32f2f'
             });
 
             if (action.isConfirmed) {
                 const { value: formValues } = await Swal.fire({
                     title: '<h2 style="font-size:26px; margin:0;">신규 차량 등록</h2>',
-                    html:
-                        '<p style="font-size:14px; color:#555; margin:5px 0;">여러 대는 쉼표(,)로 구분하여 입력하세요.<br>(예: 12가1111, 34나2222)</p>' +
+                    html: '<p style="font-size:14px; color:#555; margin:5px 0;">여러 대는 쉼표(,)로 구분하여 입력하세요.</p>' +
                         '<input id="reg-plate" class="swal-reg-input" placeholder="차량번호 입력">' +
-                        '<select id="reg-type" class="swal-reg-select">' +
-                            '<option value="객실">객실 (콘도)</option>' +
-                            '<option value="임직원">임직원</option>' +
-                            '<option value="캐디">캐디</option>' +
-                            '<option value="공무">공무/작업차량</option>' +
-                        '</select>',
+                        '<select id="reg-type" class="swal-reg-select"><option value="객실">객실 (콘도)</option><option value="임직원">임직원</option><option value="캐디">캐디</option><option value="공무">공무/작업차량</option></select>',
                     focusConfirm: false, showCancelButton: true, confirmButtonText: '일괄 저장', cancelButtonText: '취소', confirmButtonColor: '#4caf50',
                     preConfirm: () => {
-                        const rawPlates = document.getElementById('reg-plate').value;
-                        const type = document.getElementById('reg-type').value;
-                        if (!rawPlates) { Swal.showValidationMessage('차량번호를 입력해주세요!'); }
-                        return { rawPlates: rawPlates, type: type }
+                        const rawPlates = document.getElementById('reg-plate').value; const type = document.getElementById('reg-type').value;
+                        if (!rawPlates) { Swal.showValidationMessage('차량번호를 입력해주세요!'); } return { rawPlates: rawPlates, type: type }
                     }
                 });
 
                 if (formValues) {
                     const plateArray = formValues.rawPlates.split(',').map(p => p.replace(/\s/g, '')).filter(p => p.length > 0);
                     const batch = db.batch(); 
-                    
-                    plateArray.forEach(plate => {
-                        const docRef = db.collection('vehicles').doc(plate);
-                        batch.set(docRef, { type: formValues.type, registeredAt: new Date().toISOString() });
-                    });
-
+                    plateArray.forEach(plate => { const docRef = db.collection('vehicles').doc(plate); batch.set(docRef, { type: formValues.type, registeredAt: new Date().toISOString() }); });
                     await batch.commit();
-                    Swal.fire({ icon: 'success', title: '등록 완료!', html: `<div style="font-size:20px;">총 <b>${plateArray.length}</b>대의 차량이<br>${formValues.type}(으)로 등록되었습니다.</div>`, confirmButtonColor: '#4caf50' });
+                    Swal.fire({ icon: 'success', title: '등록 완료!', html: `<div style="font-size:20px;">총 <b>${plateArray.length}</b>대의 차량이 등록되었습니다.</div>`, confirmButtonColor: '#4caf50' });
                 }
-
             } else if (action.isDenied) {
                 const { value: delPlate } = await Swal.fire({
-                    title: '<h2 style="font-size:26px; margin:0;">차량 삭제</h2>',
-                    input: 'text', inputPlaceholder: '삭제할 차량번호 (예: 12가3456)',
-                    showCancelButton: true, confirmButtonText: '삭제하기', cancelButtonText: '취소', confirmButtonColor: '#d32f2f',
-                    customClass: { input: 'swal-reg-input' }
+                    title: '<h2 style="font-size:26px; margin:0;">차량 삭제</h2>', input: 'text', inputPlaceholder: '삭제할 차량번호',
+                    showCancelButton: true, confirmButtonText: '삭제하기', cancelButtonText: '취소', confirmButtonColor: '#d32f2f', customClass: { input: 'swal-reg-input' }
                 });
-
                 if (delPlate) {
-                    const cleanPlate = delPlate.replace(/\s/g, '');
-                    await db.collection('vehicles').doc(cleanPlate).delete();
-                    Swal.fire('삭제 완료', `<b>${cleanPlate}</b> 차량이<br>성공적으로 삭제되었습니다.`, 'success');
+                    const cleanPlate = delPlate.replace(/\s/g, ''); await db.collection('vehicles').doc(cleanPlate).delete();
+                    Swal.fire('삭제 완료', `<b>${cleanPlate}</b> 차량이 삭제되었습니다.`, 'success');
                 }
             }
         }
@@ -203,15 +272,13 @@
             const base64Data = base64Image.split(',')[1];
             const requestBody = { version: "V2", requestId: "pine-" + Date.now(), timestamp: Date.now(), images: [{ format: "jpeg", name: "plate", data: base64Data }] };
             const proxyBody = { url: NAVER_OCR_URL, secretKey: NAVER_SECRET_KEY, payload: requestBody };
-
             try {
                 const response = await fetch(PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(proxyBody) });
                 if (!response.ok) throw new Error("에러코드: " + response.status);
                 const result = await response.json();
                 if (result.images && result.images[0].fields && result.images[0].fields.length > 0) {
                     const texts = result.images[0].fields.map(field => field.inferText);
-                    const rawText = texts.join('').replace(/\s/g, ''); 
-                    const platePattern = rawText.match(/\d{2,3}[가-힣]\d{4}/);
+                    const rawText = texts.join('').replace(/\s/g, ''); const platePattern = rawText.match(/\d{2,3}[가-힣]\d{4}/);
                     if (platePattern) return platePattern[0]; else return rawText; 
                 } else return null; 
             } catch (error) { Swal.close(); alert("통신 에러: " + error.message); return null; }
@@ -221,8 +288,7 @@
             Swal.fire({ title: '<h2 style="font-size:35px; margin:0;">정밀 판독 중...</h2>', html: '<p style="font-size:22px;">인공지능이 번호판을 분석하고 있습니다.</p>', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
             const canvas = document.createElement('canvas');
-            const videoWidth = document.getElementById('camera-view').videoWidth;
-            const videoHeight = document.getElementById('camera-view').videoHeight;
+            const videoWidth = document.getElementById('camera-view').videoWidth; const videoHeight = document.getElementById('camera-view').videoHeight;
             const cropWidth = videoWidth * 0.75; const cropHeight = videoHeight * 0.3; 
             const startX = (videoWidth - cropWidth) / 2; const startY = (videoHeight - cropHeight) / 2;
 
@@ -247,43 +313,27 @@
                     let bgColor = '#e8f5e9'; let btnColor = '#4caf50'; let iconType = 'success'; let titleHtml = '등록 차량'; let txtColor = '#2e7d32';
                     if (data.type === '캐디') { bgColor = '#e0f7fa'; btnColor = '#00bcd4'; iconType = 'info'; titleHtml = '캐디 차량'; txtColor = '#008394'; }
 
-                    // ⬇️ 2중 안전장치가 적용된 결과 팝업 ⬇️
+                    // ⬇️ 자동 일지 기록 실행 (등록 차량) ⬇️
+                    saveAutoLog(carNumber, `등록완료 (${data.type})`);
+
                     Swal.fire({ 
-                        icon: iconType, 
-                        title: `<h2 style="font-size: 45px; margin: 0;">${titleHtml}</h2>`, 
+                        icon: iconType, title: `<h2 style="font-size: 45px; margin: 0;">${titleHtml}</h2>`, 
                         html: `<div style="font-size: 60px; font-weight: bold; color: ${txtColor}; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div><div style="font-size: 35px; color: #555; margin-top: 15px; font-weight: bold;">구분: ${data.type}</div>`, 
-                        background: bgColor, 
-                        showDenyButton: true, 
-                        confirmButtonText: '✅ 닫기', confirmButtonColor: btnColor,
-                        denyButtonText: '🗑️ 삭제', denyButtonColor: '#d32f2f'
+                        background: bgColor, showDenyButton: true, confirmButtonText: '✅ 닫기', confirmButtonColor: btnColor, denyButtonText: '🗑️ 삭제', denyButtonColor: '#d32f2f'
                     }).then((result) => {
-                        // 만약 실수로든 고의로든 '삭제' 버튼을 눌렀다면?
                         if (result.isDenied) {
-                            // 바로 지우지 않고 2차 경고 팝업을 띄움
                             Swal.fire({
-                                icon: 'warning',
-                                title: '<h2 style="font-size:30px; margin:0;">정말 삭제하시겠습니까?</h2>',
-                                html: `<p style="font-size:20px; color:#555; margin-top:10px;"><b>${carNumber}</b> 차량 정보가<br>데이터베이스에서 완전히 지워집니다.</p>`,
-                                showCancelButton: true,
-                                confirmButtonText: '네, 삭제합니다',
-                                cancelButtonText: '아니오, 취소',
-                                confirmButtonColor: '#d32f2f',
-                                cancelButtonColor: '#888'
+                                icon: 'warning', title: '<h2 style="font-size:30px; margin:0;">정말 삭제하시겠습니까?</h2>', html: `<p style="font-size:20px; color:#555; margin-top:10px;"><b>${carNumber}</b> 차량 정보가<br>데이터베이스에서 완전히 지워집니다.</p>`,
+                                showCancelButton: true, confirmButtonText: '네, 삭제합니다', cancelButtonText: '아니오, 취소', confirmButtonColor: '#d32f2f', cancelButtonColor: '#888'
                             }).then((confirmResult) => {
-                                // 2차 경고에서도 '네, 삭제합니다'를 확실히 누른 경우에만 삭제 처리
-                                if (confirmResult.isConfirmed) {
-                                    db.collection('vehicles').doc(carNumber).delete().then(() => {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: '삭제 완료',
-                                            html: `<div style="font-size:22px;"><b>${carNumber}</b><br>데이터베이스에서 삭제되었습니다.</div>`
-                                        });
-                                    });
-                                }
+                                if (confirmResult.isConfirmed) { db.collection('vehicles').doc(carNumber).delete().then(() => { Swal.fire({ icon: 'success', title: '삭제 완료', html: `<div style="font-size:22px;"><b>${carNumber}</b><br>삭제되었습니다.</div>` }); }); }
                             });
                         }
                     });
                 } else {
+                    // ⬇️ 자동 일지 기록 실행 (미등록 차량) ⬇️
+                    saveAutoLog(carNumber, '미등록 (불법주차)');
+
                     Swal.fire({ icon: 'error', title: '<h2 style="font-size: 45px; margin: 0; color: #d32f2f;">미등록 차량<br><span style="font-size: 30px;">(불법주차)</span></h2>', html: `<div style="font-size: 60px; font-weight: bold; color: #c62828; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div>`, background: '#ffebee', confirmButtonColor: '#f44336' });
                 }
             }).catch((error) => { Swal.fire('오류 발생', '데이터베이스 연결을 확인하세요.', 'error'); });
