@@ -6,9 +6,9 @@
     <title>에스텍 주차 단속 스캐너</title>
     
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="./stec.png?v=5">
-    <link rel="apple-touch-icon" href="./stec.png?v=5">
-    <link rel="shortcut icon" href="./stec.png?v=5">
+    <link rel="icon" type="image/png" href="./stec.png?v=6">
+    <link rel="apple-touch-icon" href="./stec.png?v=6">
+    <link rel="shortcut icon" href="./stec.png?v=6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="단속스캐너">
@@ -27,87 +27,58 @@
             object-fit: cover; z-index: -1; 
         }
         
-        /* ⬇️ 상단바 정렬 및 글씨 쪼개짐 완벽 해결 ⬇️ */
         .header { 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; /* 로고와 글자를 화면 정중앙에 배치 */
-            padding: 15px 10px; 
-            background: rgba(0,0,0,0.85); 
-            border-bottom: 2px solid #333;
-            width: 100%;
-            box-sizing: border-box;
+            display: flex; align-items: center; justify-content: center; 
+            padding: 15px 10px; background: rgba(0,0,0,0.85); 
+            border-bottom: 2px solid #333; width: 100%; box-sizing: border-box; position: relative;
         }
-        .header img { 
-            height: 45px; /* 모바일 화면에 맞춰 로고 크기 최적화 */
-            margin-right: 12px; 
-        } 
-        .header-text { 
-            text-align: left; 
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        .header img { height: 45px; margin-right: 12px; } 
+        .header-text { text-align: left; display: flex; flex-direction: column; justify-content: center; }
+        .header-text h2 { margin: 0; font-size: 22px; color: #ffcc00; letter-spacing: -1px; white-space: nowrap; } 
+        .header-text p { margin: 4px 0 0 0; font-size: 13px; color: #ccc; letter-spacing: -0.5px; white-space: nowrap; }
+        
+        /* 통합 관리 버튼으로 디자인 변경 */
+        .btn-add {
+            position: absolute; right: 10px; background-color: #333; color: white;
+            border: 1px solid #ffcc00; padding: 8px 10px; font-size: 13px;
+            font-weight: bold; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
-        .header-text h2 { 
-            margin: 0; 
-            font-size: 22px; /* 한 줄에 쏙 들어가도록 크기 조정 */
-            color: #ffcc00; 
-            letter-spacing: -1px; 
-            white-space: nowrap; /* ⭐️ 절대 두 줄로 쪼개지지 않게 강제 고정 */
-        } 
-        .header-text p { 
-            margin: 4px 0 0 0; 
-            font-size: 13px; 
-            color: #ccc; 
-            letter-spacing: -0.5px; 
-            white-space: nowrap; /* 서브타이틀도 한 줄 고정 */
-        }
-        /* ⬆️ 상단바 수정 끝 ⬆️ */
+        .btn-add:active { background-color: #555; }
         
         .scanner-box { 
-            border: 5px dashed #ffcc00; 
-            width: 85%; 
-            height: 25vh; 
-            margin: 12vh auto 0 auto; 
-            border-radius: 15px;
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 0 9999px rgba(0,0,0,0.7);
+            border: 5px dashed #ffcc00; width: 85%; height: 25vh; margin: 12vh auto 0 auto; 
+            border-radius: 15px; background: rgba(255, 255, 255, 0.15); box-shadow: 0 0 0 9999px rgba(0,0,0,0.7);
         }
         .guide-text { text-align: center; margin-top: 25px; font-size: 24px; font-weight: bold; text-shadow: 2px 2px 5px black; color: white; }
         
         .btn-scan { 
             position: fixed; bottom: 40px; left: 5%; width: 90%; padding: 25px; 
-            font-size: 32px; font-weight: bold; background-color: #ffcc00; 
-            color: black; border: none; border-radius: 15px; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.6); cursor: pointer;
+            font-size: 32px; font-weight: bold; background-color: #ffcc00; color: black; 
+            border: none; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.6); cursor: pointer;
         }
         .btn-scan:active { background-color: #e6b800; }
 
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #121212; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-color: #121212; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .login-box {
             background: rgba(255,255,255,0.1); padding: 50px 30px; border-radius: 15px; 
             text-align: center; border: 2px solid #ffcc00; width: 85%; max-width: 400px;
         }
-        .login-box input {
-            font-size: 28px; padding: 20px; text-align: center; margin: 25px 0; width: 85%;
-            border-radius: 8px; border: none; outline: none;
-        }
-        .login-box button {
-            font-size: 28px; padding: 20px; width: 100%; background-color: #ffcc00; color: black;
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
-        }
+        .login-box input { font-size: 28px; padding: 20px; text-align: center; margin: 25px 0; width: 85%; border-radius: 8px; border: none; outline: none; }
+        .login-box button { font-size: 28px; padding: 20px; width: 100%; background-color: #ffcc00; color: black; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
         .swal-large-input { font-size: 28px !important; text-align: center; height: 60px; }
+        .swal-reg-input { font-size: 20px !important; margin: 10px auto; width: 90%; padding: 12px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        .swal-reg-select { font-size: 20px !important; margin: 10px auto; width: 90%; padding: 12px; border-radius: 5px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
         <div class="login-box">
-            <img src="stec.png?v=5" style="height: 80px; margin-bottom: 20px;" onerror="this.style.display='none'">
+            <img src="stec.png?v=6" style="height: 80px; margin-bottom: 20px;" onerror="this.style.display='none'">
             <h2 style="color: #ffcc00; margin: 0 0 5px 0; font-size: 32px;">관리자 인증</h2>
             <p style="color: #aaa; font-size: 18px; margin: 0;">에스텍 보안 시스템</p>
             <input type="password" id="admin-pw" placeholder="암호 입력">
@@ -121,13 +92,13 @@
             <h2>에스텍 주차단속 스캐너</h2>
             <p>양지파인리조트 차량 관리 시스템</p>
         </div>
+        <!-- ⚙️ 통합 차량 관리 버튼 -->
+        <button class="btn-add" onclick="manageVehicle()">⚙️ 차량관리</button>
     </div>
 
     <video id="camera-view" autoplay playsinline></video>
-
     <div class="scanner-box"></div>
     <div class="guide-text">밝은 사각형 안에 번호판을 맞추세요</div>
-
     <button class="btn-scan" onclick="scanVehicle()">📸 정밀 스캔</button>
 
     <script>
@@ -161,63 +132,105 @@
                 localStorage.setItem('estec_auth', 'true');
                 document.getElementById('login-screen').style.display = 'none';
                 startCamera();
-            } else {
-                Swal.fire({ icon: 'error', title: '인증 실패', text: '비밀번호가 일치하지 않습니다.' });
-                document.getElementById('admin-pw').value = '';
-            }
+            } else { Swal.fire({ icon: 'error', title: '인증 실패', text: '비밀번호가 일치하지 않습니다.' }); document.getElementById('admin-pw').value = ''; }
         }
 
         function startCamera() {
             const video = document.getElementById('camera-view');
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(stream) { video.srcObject = stream; })
-                .catch(function(error) { Swal.fire('카메라 오류', '권한을 허용해주세요.', 'error'); });
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream) { video.srcObject = stream; }).catch(function(error) { Swal.fire('카메라 오류', '권한을 허용해주세요.', 'error'); });
+            }
+        }
+
+        // ⬇️ 등록과 삭제를 모두 처리하는 통합 관리 함수 ⬇️
+        async function manageVehicle() {
+            const action = await Swal.fire({
+                title: '<h2 style="font-size:28px; margin:0;">차량 관리 메뉴</h2>',
+                text: '수행할 작업을 선택하세요.',
+                showDenyButton: true, showCancelButton: true,
+                confirmButtonText: '➕ 등록하기', denyButtonText: '➖ 삭제하기', cancelButtonText: '닫기',
+                confirmButtonColor: '#4caf50', denyButtonColor: '#d32f2f'
+            });
+
+            if (action.isConfirmed) {
+                // [차량 다중 등록 로직]
+                const { value: formValues } = await Swal.fire({
+                    title: '<h2 style="font-size:26px; margin:0;">신규 차량 등록</h2>',
+                    html:
+                        '<p style="font-size:14px; color:#555; margin:5px 0;">여러 대는 쉼표(,)로 구분하여 입력하세요.<br>(예: 12가1111, 34나2222)</p>' +
+                        '<input id="reg-plate" class="swal-reg-input" placeholder="차량번호 입력">' +
+                        '<select id="reg-type" class="swal-reg-select">' +
+                            '<option value="객실">객실 (콘도)</option>' +
+                            '<option value="임직원">임직원</option>' +
+                            '<option value="캐디">캐디</option>' +
+                            '<option value="공무">공무/작업차량</option>' +
+                        '</select>',
+                    focusConfirm: false, showCancelButton: true, confirmButtonText: '일괄 저장', cancelButtonText: '취소', confirmButtonColor: '#4caf50',
+                    preConfirm: () => {
+                        const rawPlates = document.getElementById('reg-plate').value;
+                        const type = document.getElementById('reg-type').value;
+                        if (!rawPlates) { Swal.showValidationMessage('차량번호를 입력해주세요!'); }
+                        return { rawPlates: rawPlates, type: type }
+                    }
+                });
+
+                if (formValues) {
+                    // 쉼표로 분리하여 빈칸 제거하고 배열로 만듦
+                    const plateArray = formValues.rawPlates.split(',').map(p => p.replace(/\s/g, '')).filter(p => p.length > 0);
+                    const batch = db.batch(); // 파이어베이스 일괄 처리 엔진
+                    
+                    plateArray.forEach(plate => {
+                        const docRef = db.collection('vehicles').doc(plate);
+                        batch.set(docRef, { type: formValues.type, registeredAt: new Date().toISOString() });
+                    });
+
+                    await batch.commit();
+                    Swal.fire({ icon: 'success', title: '등록 완료!', html: `<div style="font-size:20px;">총 <b>${plateArray.length}</b>대의 차량이<br>${formValues.type}(으)로 등록되었습니다.</div>`, confirmButtonColor: '#4caf50' });
+                }
+
+            } else if (action.isDenied) {
+                // [수동 차량 삭제 로직]
+                const { value: delPlate } = await Swal.fire({
+                    title: '<h2 style="font-size:26px; margin:0;">차량 삭제</h2>',
+                    input: 'text', inputPlaceholder: '삭제할 차량번호 (예: 12가3456)',
+                    showCancelButton: true, confirmButtonText: '삭제하기', cancelButtonText: '취소', confirmButtonColor: '#d32f2f',
+                    customClass: { input: 'swal-reg-input' }
+                });
+
+                if (delPlate) {
+                    const cleanPlate = delPlate.replace(/\s/g, '');
+                    await db.collection('vehicles').doc(cleanPlate).delete();
+                    Swal.fire('삭제 완료', `<b>${cleanPlate}</b> 차량이<br>성공적으로 삭제되었습니다.`, 'success');
+                }
             }
         }
 
         async function recognizePlateFromNaver(base64Image) {
             const base64Data = base64Image.split(',')[1];
-            const requestBody = {
-                version: "V2", requestId: "pine-" + Date.now(), timestamp: Date.now(),
-                images: [{ format: "jpeg", name: "plate", data: base64Data }] 
-            };
+            const requestBody = { version: "V2", requestId: "pine-" + Date.now(), timestamp: Date.now(), images: [{ format: "jpeg", name: "plate", data: base64Data }] };
             const proxyBody = { url: NAVER_OCR_URL, secretKey: NAVER_SECRET_KEY, payload: requestBody };
 
             try {
-                const response = await fetch(PROXY_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(proxyBody)
-                });
+                const response = await fetch(PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(proxyBody) });
                 if (!response.ok) throw new Error("에러코드: " + response.status);
                 const result = await response.json();
-                
                 if (result.images && result.images[0].fields && result.images[0].fields.length > 0) {
                     const texts = result.images[0].fields.map(field => field.inferText);
                     const rawText = texts.join('').replace(/\s/g, ''); 
                     const platePattern = rawText.match(/\d{2,3}[가-힣]\d{4}/);
                     if (platePattern) return platePattern[0]; else return rawText; 
                 } else return null; 
-            } catch (error) {
-                Swal.close(); alert("통신 에러: " + error.message); return null; 
-            }
+            } catch (error) { Swal.close(); alert("통신 에러: " + error.message); return null; }
         }
 
         async function scanVehicle() {
-            Swal.fire({
-                title: '<h2 style="font-size:35px; margin:0;">정밀 판독 중...</h2>', 
-                html: '<p style="font-size:22px;">인공지능이 번호판을 분석하고 있습니다.</p>',
-                allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }
-            });
+            Swal.fire({ title: '<h2 style="font-size:35px; margin:0;">정밀 판독 중...</h2>', html: '<p style="font-size:22px;">인공지능이 번호판을 분석하고 있습니다.</p>', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
             const canvas = document.createElement('canvas');
             const videoWidth = document.getElementById('camera-view').videoWidth;
             const videoHeight = document.getElementById('camera-view').videoHeight;
-            
-            const cropWidth = videoWidth * 0.75;  
-            const cropHeight = videoHeight * 0.3; 
-            const startX = (videoWidth - cropWidth) / 2;
-            const startY = (videoHeight - cropHeight) / 2;
+            const cropWidth = videoWidth * 0.75; const cropHeight = videoHeight * 0.3; 
+            const startX = (videoWidth - cropWidth) / 2; const startY = (videoHeight - cropHeight) / 2;
 
             canvas.width = cropWidth; canvas.height = cropHeight;
             canvas.getContext('2d').drawImage(document.getElementById('camera-view'), startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
@@ -228,26 +241,35 @@
             if (!carNumber) {
                 const manualInput = await Swal.fire({
                     icon: 'warning', title: '<h2 style="font-size:35px;">인식 실패</h2>', html: '<p style="font-size:24px;">직접 번호를 입력하시겠습니까?</p>',
-                    input: 'text', inputPlaceholder: '예: 12가3456',
-                    showCancelButton: true, confirmButtonText: '조회', cancelButtonText: '취소',
-                    customClass: { input: 'swal-large-input' }
+                    input: 'text', inputPlaceholder: '예: 12가3456', showCancelButton: true, confirmButtonText: '조회', cancelButtonText: '취소', customClass: { input: 'swal-large-input' }
                 });
-                if (manualInput.isConfirmed && manualInput.value) {
-                    carNumber = manualInput.value.replace(/\s/g, '');
-                } else return; 
+                if (manualInput.isConfirmed && manualInput.value) { carNumber = manualInput.value.replace(/\s/g, ''); } else return; 
             }
 
             const docRef = db.collection('vehicles').doc(carNumber);
             docRef.get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    if (data.type === '캐디') {
-                        Swal.fire({ icon: 'info', title: '<h2 style="font-size: 45px; margin: 0;">캐디 차량</h2>', html: `<div style="font-size: 60px; font-weight: bold; color: #008394; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div>`, background: '#e0f7fa', confirmButtonColor: '#00bcd4' });
-                    } else if (data.type === '객실') {
-                        Swal.fire({ icon: 'success', title: '<h2 style="font-size: 45px; margin: 0;">객실 차량</h2>', html: `<div style="font-size: 60px; font-weight: bold; color: #2e7d32; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div>`, background: '#e8f5e9', confirmButtonColor: '#4caf50' });
-                    } else {
-                        Swal.fire({ icon: 'success', title: '<h2 style="font-size: 45px; margin: 0;">등록 차량</h2>', html: `<div style="font-size: 60px; font-weight: bold; color: #2e7d32; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div><div style="font-size: 35px; color: #555; margin-top: 15px; font-weight: bold;">구분: ${data.type}</div>`, confirmButtonColor: '#4caf50' });
-                    }
+                    let bgColor = '#e8f5e9'; let btnColor = '#4caf50'; let iconType = 'success'; let titleHtml = '등록 차량'; let txtColor = '#2e7d32';
+                    if (data.type === '캐디') { bgColor = '#e0f7fa'; btnColor = '#00bcd4'; iconType = 'info'; titleHtml = '캐디 차량'; txtColor = '#008394'; }
+
+                    // ⬇️ 스캔 결과창에 '차량 삭제' 버튼 탑재 (현장에서 스캔 후 즉시 삭제 가능) ⬇️
+                    Swal.fire({ 
+                        icon: iconType, 
+                        title: `<h2 style="font-size: 45px; margin: 0;">${titleHtml}</h2>`, 
+                        html: `<div style="font-size: 60px; font-weight: bold; color: ${txtColor}; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div><div style="font-size: 35px; color: #555; margin-top: 15px; font-weight: bold;">구분: ${data.type}</div>`, 
+                        background: bgColor, 
+                        showDenyButton: true, // 부정(삭제) 버튼 활성화
+                        confirmButtonText: '확인', confirmButtonColor: btnColor,
+                        denyButtonText: '🗑️ 이 차량 삭제', denyButtonColor: '#d32f2f'
+                    }).then((result) => {
+                        // 사용자가 삭제 버튼을 눌렀을 경우
+                        if (result.isDenied) {
+                            db.collection('vehicles').doc(carNumber).delete().then(() => {
+                                Swal.fire('삭제 완료', `<b>${carNumber}</b><br>데이터베이스에서 삭제되었습니다.`, 'success');
+                            });
+                        }
+                    });
                 } else {
                     Swal.fire({ icon: 'error', title: '<h2 style="font-size: 45px; margin: 0; color: #d32f2f;">미등록 차량<br><span style="font-size: 30px;">(불법주차)</span></h2>', html: `<div style="font-size: 60px; font-weight: bold; color: #c62828; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div>`, background: '#ffebee', confirmButtonColor: '#f44336' });
                 }
