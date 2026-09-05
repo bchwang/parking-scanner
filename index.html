@@ -6,9 +6,9 @@
     <title>에스텍 주차 단속 스캐너</title>
     
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="./stec.png?v=6">
-    <link rel="apple-touch-icon" href="./stec.png?v=6">
-    <link rel="shortcut icon" href="./stec.png?v=6">
+    <link rel="icon" type="image/png" href="./stec.png?v=7">
+    <link rel="apple-touch-icon" href="./stec.png?v=7">
+    <link rel="shortcut icon" href="./stec.png?v=7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="단속스캐너">
@@ -37,7 +37,6 @@
         .header-text h2 { margin: 0; font-size: 22px; color: #ffcc00; letter-spacing: -1px; white-space: nowrap; } 
         .header-text p { margin: 4px 0 0 0; font-size: 13px; color: #ccc; letter-spacing: -0.5px; white-space: nowrap; }
         
-        /* 통합 관리 버튼으로 디자인 변경 */
         .btn-add {
             position: absolute; right: 10px; background-color: #333; color: white;
             border: 1px solid #ffcc00; padding: 8px 10px; font-size: 13px;
@@ -78,7 +77,7 @@
 
     <div id="login-screen">
         <div class="login-box">
-            <img src="stec.png?v=6" style="height: 80px; margin-bottom: 20px;" onerror="this.style.display='none'">
+            <img src="stec.png?v=7" style="height: 80px; margin-bottom: 20px;" onerror="this.style.display='none'">
             <h2 style="color: #ffcc00; margin: 0 0 5px 0; font-size: 32px;">관리자 인증</h2>
             <p style="color: #aaa; font-size: 18px; margin: 0;">에스텍 보안 시스템</p>
             <input type="password" id="admin-pw" placeholder="암호 입력">
@@ -92,7 +91,6 @@
             <h2>에스텍 주차단속 스캐너</h2>
             <p>양지파인리조트 차량 관리 시스템</p>
         </div>
-        <!-- ⚙️ 통합 차량 관리 버튼 -->
         <button class="btn-add" onclick="manageVehicle()">⚙️ 차량관리</button>
     </div>
 
@@ -102,7 +100,7 @@
     <button class="btn-scan" onclick="scanVehicle()">📸 정밀 스캔</button>
 
     <script>
-        const ADMIN_PASSWORD = "6749!"; 
+        const ADMIN_PASSWORD = "1234"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDw-XMdIUdIuPiU3jVqfUA9PMUMOpbz_C0",
@@ -142,7 +140,6 @@
             }
         }
 
-        // ⬇️ 등록과 삭제를 모두 처리하는 통합 관리 함수 ⬇️
         async function manageVehicle() {
             const action = await Swal.fire({
                 title: '<h2 style="font-size:28px; margin:0;">차량 관리 메뉴</h2>',
@@ -153,7 +150,6 @@
             });
 
             if (action.isConfirmed) {
-                // [차량 다중 등록 로직]
                 const { value: formValues } = await Swal.fire({
                     title: '<h2 style="font-size:26px; margin:0;">신규 차량 등록</h2>',
                     html:
@@ -175,9 +171,8 @@
                 });
 
                 if (formValues) {
-                    // 쉼표로 분리하여 빈칸 제거하고 배열로 만듦
                     const plateArray = formValues.rawPlates.split(',').map(p => p.replace(/\s/g, '')).filter(p => p.length > 0);
-                    const batch = db.batch(); // 파이어베이스 일괄 처리 엔진
+                    const batch = db.batch(); 
                     
                     plateArray.forEach(plate => {
                         const docRef = db.collection('vehicles').doc(plate);
@@ -189,7 +184,6 @@
                 }
 
             } else if (action.isDenied) {
-                // [수동 차량 삭제 로직]
                 const { value: delPlate } = await Swal.fire({
                     title: '<h2 style="font-size:26px; margin:0;">차량 삭제</h2>',
                     input: 'text', inputPlaceholder: '삭제할 차량번호 (예: 12가3456)',
@@ -253,20 +247,39 @@
                     let bgColor = '#e8f5e9'; let btnColor = '#4caf50'; let iconType = 'success'; let titleHtml = '등록 차량'; let txtColor = '#2e7d32';
                     if (data.type === '캐디') { bgColor = '#e0f7fa'; btnColor = '#00bcd4'; iconType = 'info'; titleHtml = '캐디 차량'; txtColor = '#008394'; }
 
-                    // ⬇️ 스캔 결과창에 '차량 삭제' 버튼 탑재 (현장에서 스캔 후 즉시 삭제 가능) ⬇️
+                    // ⬇️ 2중 안전장치가 적용된 결과 팝업 ⬇️
                     Swal.fire({ 
                         icon: iconType, 
                         title: `<h2 style="font-size: 45px; margin: 0;">${titleHtml}</h2>`, 
                         html: `<div style="font-size: 60px; font-weight: bold; color: ${txtColor}; margin-top: 20px; letter-spacing: -2px;">${carNumber}</div><div style="font-size: 35px; color: #555; margin-top: 15px; font-weight: bold;">구분: ${data.type}</div>`, 
                         background: bgColor, 
-                        showDenyButton: true, // 부정(삭제) 버튼 활성화
-                        confirmButtonText: '확인', confirmButtonColor: btnColor,
-                        denyButtonText: '🗑️ 이 차량 삭제', denyButtonColor: '#d32f2f'
+                        showDenyButton: true, 
+                        confirmButtonText: '✅ 닫기', confirmButtonColor: btnColor,
+                        denyButtonText: '🗑️ 삭제', denyButtonColor: '#d32f2f'
                     }).then((result) => {
-                        // 사용자가 삭제 버튼을 눌렀을 경우
+                        // 만약 실수로든 고의로든 '삭제' 버튼을 눌렀다면?
                         if (result.isDenied) {
-                            db.collection('vehicles').doc(carNumber).delete().then(() => {
-                                Swal.fire('삭제 완료', `<b>${carNumber}</b><br>데이터베이스에서 삭제되었습니다.`, 'success');
+                            // 바로 지우지 않고 2차 경고 팝업을 띄움
+                            Swal.fire({
+                                icon: 'warning',
+                                title: '<h2 style="font-size:30px; margin:0;">정말 삭제하시겠습니까?</h2>',
+                                html: `<p style="font-size:20px; color:#555; margin-top:10px;"><b>${carNumber}</b> 차량 정보가<br>데이터베이스에서 완전히 지워집니다.</p>`,
+                                showCancelButton: true,
+                                confirmButtonText: '네, 삭제합니다',
+                                cancelButtonText: '아니오, 취소',
+                                confirmButtonColor: '#d32f2f',
+                                cancelButtonColor: '#888'
+                            }).then((confirmResult) => {
+                                // 2차 경고에서도 '네, 삭제합니다'를 확실히 누른 경우에만 삭제 처리
+                                if (confirmResult.isConfirmed) {
+                                    db.collection('vehicles').doc(carNumber).delete().then(() => {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: '삭제 완료',
+                                            html: `<div style="font-size:22px;"><b>${carNumber}</b><br>데이터베이스에서 삭제되었습니다.</div>`
+                                        });
+                                    });
+                                }
                             });
                         }
                     });
