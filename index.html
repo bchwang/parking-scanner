@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>에스텍 주차 단속 스캐너</title>
     
-    <!-- 스마트폰 홈 화면 바로가기 아이콘 (에스텍 로고) -->
-    <link rel="icon" href="stec.png">
-    <link rel="apple-touch-icon" href="stec.png">
+    <!-- ⬇️ 안드로이드, 아이폰 모두 확실하게 인식하도록 보강된 아이콘 코드 ⬇️ -->
+    <link rel="icon" type="image/png" href="./stec.png">
+    <link rel="apple-touch-icon" href="./stec.png">
+    <link rel="shortcut icon" href="./stec.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="단속스캐너">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -24,21 +27,12 @@
             object-fit: cover; z-index: -1; 
         }
         
-        /* ⬇️ 상단바 디자인 완전히 개편 (좌측 로고, 우측 글자 균형) ⬇️ */
         .header { 
-            display: flex; /* 가로 배열 기능 */
-            align-items: center; /* 위아래 중앙 정렬 */
-            padding: 15px 20px; 
-            background: rgba(0,0,0,0.85); /* 배경을 살짝 더 진하게 */
-            border-bottom: 2px solid #333;
+            display: flex; align-items: center; padding: 15px 20px; 
+            background: rgba(0,0,0,0.85); border-bottom: 2px solid #333;
         }
-        .header img {
-            height: 50px; /* 로고 크기를 큼직하게 확대 */
-            margin-right: 15px; /* 로고와 글자 사이 간격 */
-        }
-        .header-text {
-            text-align: left; /* 글자들은 왼쪽으로 가지런히 정렬 */
-        }
+        .header img { height: 50px; margin-right: 15px; }
+        .header-text { text-align: left; }
         .header-text h2 { margin: 0; font-size: 21px; color: #ffcc00; letter-spacing: -0.5px; }
         .header-text p { margin: 4px 0 0 0; font-size: 13px; color: #ccc; letter-spacing: -0.5px; }
         
