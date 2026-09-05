@@ -1,0 +1,15 @@
+{
+  "name": "에스텍 주차단속 스캐너",
+  "short_name": "단속스캐너",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#ffcc00",
+  "icons": [
+    {
+      "src": "stec.png",
+      "sizes": "192x192 512x512 any",
+      "type": "image/png"
+    }
+  ]
+}
